@@ -36,7 +36,7 @@ def main():
 
     # логотип
     logo_image = tk.PhotoImage(file="files/logo.png")
-    logo_image = logo_image.subsample(2, 2)
+    logo_image = logo_image.subsample(8, 8)
     logo_label = tk.Label(window, image=logo_image)
     logo_label.place(x=10, y=10)
 
