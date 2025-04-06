@@ -42,13 +42,21 @@ def weighted_from_counter(c):
     weights = [count ** 1.2 for _, count in items]  # Поднимаем в степень, чтобы усилить частотность
     return random.choices([item[0] for item in items], weights=weights)[0]
 
+def get_data():
+    data = ""
+    files = ['andreev.txt', 'chehov.txt', 'gogol.txt', 'mandel.txt']
+    for file in files:
+        with open(file, 'r', encoding='utf-8') as f:
+            text = f.read()
+            text = re.sub(r'\s+', ' ', text)
+            data += text
 
+        data += " "
+    return data
 
 def main():
-    filename = 'russian.utf-8' # sys.argv[1]
-    with open(filename, 'r', encoding='utf-8') as f:
-        data = f.read()
-        data = re.sub(r'\s+', ' ', data)
+    data = get_data()
+
     states = defaultdict(Counter)
 
     data = data.split()
@@ -86,7 +94,7 @@ def main():
     state = random.choice(list(states))
     generated = list(state)
 
-    for _ in range(1000):
+    for _ in range(100):
         next_word = weighted_from_counter(states[state])
         generated.append(next_word)
         state = tuple(generated[-STATE_LEN:])
