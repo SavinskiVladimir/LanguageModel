@@ -43,8 +43,12 @@ def weighted_from_counter(c):
     return random.choices([item[0] for item in items], weights=weights)[0]
 
 def get_data():
+    files = []
+    for filename in os.listdir("files"):
+        if filename.endswith(".txt"):
+            files.append("files/" + filename)
+
     data = ""
-    files = ['andreev.txt', 'chehov.txt', 'gogol.txt', 'mandel.txt']
     for file in files:
         with open(file, 'r', encoding='utf-8') as f:
             text = f.read()
@@ -92,6 +96,8 @@ def main():
 
     print('Sampling...')
     state = random.choice(list(states))
+    print(state)
+
     generated = list(state)
 
     for _ in range(100):

@@ -4,8 +4,9 @@ from tkinter import scrolledtext
 def request(request_text):
     return request_text
 
+
 def get_request_text(text_entry, response_scrolled):
-    text = text_entry.get("1.0", "end")
+    text = str(text_entry.get("1.0", "end"))
     response_scrolled.delete("1.0", "end")
     response_scrolled.insert(tk.END, request(text))
 
