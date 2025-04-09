@@ -4,6 +4,7 @@ from collections import defaultdict, Counter
 import random
 import sys
 import re
+from flask import Flask, request, jsonify
 
 STATE_LEN = 5
 
@@ -11,6 +12,8 @@ import pickle
 import os
 
 CACHE_FILE = 'markov_model.pkl'
+
+app = Flask(__name__)
 
 import textwrap
 
@@ -42,15 +45,25 @@ def weighted_from_counter(c):
     weights = [count ** 1.2 for _, count in items]  # Поднимаем в степень, чтобы усилить частотность
     return random.choices([item[0] for item in items], weights=weights)[0]
 
+def get_data():
+    files = []
+    for filename in os.listdir("files"):
+        if filename.endswith(".txt"):
+            files.append("files/" + filename)
 
+    data = ""
+    for file in files:
+        with open(file, 'r', encoding='utf-8') as f:
+            text = f.read()
+            text = re.sub(r'\s+', ' ', text)
+            data += text
 
-def main():
-    filename = 'russian.utf-8' # sys.argv[1]
-    with open(filename, 'r', encoding='utf-8') as f:
-        data = f.read()
-        data = re.sub(r'\s+', ' ', data)
+        data += " "
+    return data
+
+def train_model():
+    data = get_data()
     states = defaultdict(Counter)
-
     data = data.split()
 
     print('Learning model...')
@@ -73,26 +86,41 @@ def main():
         states[state][next] += 1
 
     print('Model has {0} states'.format(len(states)))
-    j = 0
-    for k, v in states.items():
-        print(k, v)
-        if j > 9:
-            break
-        j += 1
 
     save_model(states) # !
+    return states
 
-    print('Sampling...')
-    state = random.choice(list(states))
+def generate_text(states, start_state=None):
+    if start_state is None:
+        state = random.choice(list(states))
+    else:
+        state = tuple(start_state.split()[:STATE_LEN])
+
     generated = list(state)
 
-    for _ in range(1000):
-        next_word = weighted_from_counter(states[state])
-        generated.append(next_word)
-        state = tuple(generated[-STATE_LEN:])
+    for _ in range(100):
+        if state not in states or not states[state]:
+            state = random.choice(list(states))
+            generated = list(state)
+        else:
+            next_word = weighted_from_counter(states[state])
+            generated.append(next_word)
+            state = tuple(generated[-STATE_LEN:])
     text = ' '.join(generated)
-    print(format_text(text))
+    return format_text(text)
+
+states = train_model()
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.json
+    if 'start_state' in data:
+        start_state = data['start_state']
+        return jsonify({'text' : generate_text(states, start_state)})
+    else:
+        return jsonify({'text' : generate_text(states)})
+
 
 
 if __name__ == '__main__':
-    main()
+    app.run(debug=True)
