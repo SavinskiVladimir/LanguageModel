@@ -4,6 +4,7 @@ from collections import defaultdict, Counter
 import random
 import sys
 import re
+from flask import Flask, request, jsonify
 
 STATE_LEN = 5
 
@@ -11,6 +12,8 @@ import pickle
 import os
 
 CACHE_FILE = 'markov_model.pkl'
+
+app = Flask(__name__)
 
 import textwrap
 
@@ -58,11 +61,9 @@ def get_data():
         data += " "
     return data
 
-def main():
+def train_model():
     data = get_data()
-
     states = defaultdict(Counter)
-
     data = data.split()
 
     print('Learning model...')
@@ -85,28 +86,41 @@ def main():
         states[state][next] += 1
 
     print('Model has {0} states'.format(len(states)))
-    j = 0
-    for k, v in states.items():
-        print(k, v)
-        if j > 9:
-            break
-        j += 1
 
     save_model(states) # !
+    return states
 
-    print('Sampling...')
-    state = random.choice(list(states))
-    print(state)
+def generate_text(states, start_state=None):
+    if start_state is None:
+        state = random.choice(list(states))
+    else:
+        state = tuple(start_state.split()[:STATE_LEN])
 
     generated = list(state)
 
     for _ in range(100):
-        next_word = weighted_from_counter(states[state])
-        generated.append(next_word)
-        state = tuple(generated[-STATE_LEN:])
+        if state not in states or not states[state]:
+            state = random.choice(list(states))
+            generated = list(state)
+        else:
+            next_word = weighted_from_counter(states[state])
+            generated.append(next_word)
+            state = tuple(generated[-STATE_LEN:])
     text = ' '.join(generated)
-    print(format_text(text))
+    return format_text(text)
+
+states = train_model()
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.json
+    if 'start_state' in data:
+        start_state = data['start_state']
+        return jsonify({'text' : generate_text(states, start_state)})
+    else:
+        return jsonify({'text' : generate_text(states)})
+
 
 
 if __name__ == '__main__':
-    main()
+    app.run(debug=True)

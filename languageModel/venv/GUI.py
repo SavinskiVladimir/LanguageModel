@@ -1,8 +1,18 @@
 import tkinter as tk
 from tkinter import scrolledtext
+import requests
 
 def request(request_text):
-    return request_text
+    url = 'http://localhost:5000/generate'
+    data = {'start_state': request_text}
+    try:
+        response = requests.post(url, json=data)
+        if response.status_code == 200:
+            return response.json()['text']
+        else:
+            return f"Ошибка: {response.status_code}"
+    except Exception as e:
+        return f"Ошибка соединения: {e}"
 
 
 def get_request_text(text_entry, response_scrolled):
